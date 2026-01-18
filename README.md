@@ -252,3 +252,148 @@ ALTER LOGIN saw WITH CHECK_POLICY = OFF;
 - PHP 5.6 TIDAK cocok sqlsrv
 - FreeTDS + ODBC = solusi paling stabil
 - Jika tsql & isql OK → PHP pasti OK
+
+-------------------------------------------------
+
+Install & Aktifkan MSSQL (Native) di PHP 5.6 Linux menggunakan FreeTDS
+
+Target:
+PHP 5.6 + Linux + MSSQL Server (SQL Server 2017)
+Driver: mssql.so (native, non-PDO)
+Cocok untuk ADODB + PHPMaker (legacy)
+
+1️⃣ Install FreeTDS (Library MSSQL)
+apt update
+apt install -y freetds-dev freetds-bin unixodbc unixodbc-dev
+
+
+Pastikan library ada:
+
+ls /usr/lib/x86_64-linux-gnu/libsybdb.so*
+
+2️⃣ Buat symlink agar kompatibel dengan PHP 5.6 (WAJIB)
+
+PHP 5.6 ext/mssql hanya mencari /usr/lib.
+
+ln -s /usr/lib/x86_64-linux-gnu/libsybdb.so /usr/lib/libsybdb.so
+ln -s /usr/lib/x86_64-linux-gnu/libsybdb.so /usr/lib/libsybdb.a
+
+
+Refresh linker:
+
+ldconfig
+
+
+Cek:
+
+ldconfig -p | grep sybdb
+
+3️⃣ Konfigurasi FreeTDS
+
+Edit:
+
+vi /etc/freetds/freetds.conf
+
+
+Tambahkan:
+
+[sql2017_samator]
+    host = 202.155.143.234
+    port = 1433
+    tds version = 7.4
+
+4️⃣ Test koneksi FreeTDS (PENTING)
+tsql -S sql2017_samator -U saw -P 123456
+
+
+Jika masuk prompt:
+
+1>
+
+
+✅ FreeTDS sudah OK
+
+5️⃣ Compile ekstensi mssql untuk PHP 5.6
+cd /tmp
+wget https://www.php.net/distributions/php-5.6.30.tar.gz
+tar zxvf php-5.6.30.tar.gz
+
+cd php-5.6.30/ext/mssql
+
+/www/server/php/56/bin/phpize
+
+./configure \
+  --with-php-config=/www/server/php/56/bin/php-config \
+  --with-mssql=/usr
+
+make
+make install
+
+6️⃣ Aktifkan extension
+
+Edit:
+
+vi /www/server/php/56/etc/php.ini
+
+
+Tambahkan:
+
+extension=mssql.so
+
+
+Restart:
+
+service php-fpm-56 restart
+service nginx restart
+
+7️⃣ Verifikasi PHP
+/www/server/php/56/bin/php -m | grep mssql
+
+
+Output:
+
+mssql
+
+8️⃣ Test PHP Native MSSQL
+<?php
+$conn = mssql_connect("sql2017_samator", "saw", "123456");
+if (!$conn) {
+    die(mssql_get_last_message());
+}
+
+mssql_select_db("Surabaya_System", $conn);
+
+$q = mssql_query("SELECT TOP 5 name FROM sys.tables");
+while ($r = mssql_fetch_assoc($q)) {
+    echo $r['name']."<br>";
+}
+
+
+✅ Jika data tampil → SUKSES TOTAL
+
+9️⃣ Gunakan di ADODB / PHPMaker
+$conn = ADONewConnection("mssql");
+$conn->Connect("sql2017_samator", "saw", "123456", "Surabaya_System");
+
+
+Tidak perlu:
+
+❌ PDO_ODBC
+
+❌ sqlsrv
+
+❌ pdo_sqlsrv
+
+🧠 CATATAN PENTING
+
+PHP 5.6 TIDAK stabil dengan PDO_ODBC
+
+mssql.so + FreeTDS adalah solusi legacy paling stabil
+
+Cocok untuk:
+
+ADODB lama
+
+PHPMaker 2019–2020
+
+Aplikasi warisan (legacy system)
