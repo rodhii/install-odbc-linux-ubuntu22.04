@@ -130,16 +130,12 @@ Kalau isql gagal → PHP pasti gagal
 ```
 Kalau belum ada → lanjut compile
 
-### 6.2 Compile pdo_odbc (AMAN & BENAR)
+### 6.2 Compile pdo_odbc dan Build pakai php-config aaPanel
 ```
 cd /usr/local/src
 wget https://www.php.net/distributions/php-5.6.40.tar.gz
 tar zxvf php-5.6.40.tar.gz
 cd php-5.6.40/ext/pdo_odbc
-```
-
-### Build pakai php-config aaPanel:
-```
 /www/server/php/56/bin/phpize
 
 ./configure \
@@ -149,12 +145,38 @@ cd php-5.6.40/ext/pdo_odbc
 make
 make install
 ```
-### 6.3 Enable extension
+
+### 6.3 compile odbc dan Build pakai php-config aaPanel (ODBC INI MASIH GAGAL DIPAKAI)
+```
+# Buat folder yang dicari configure
+sudo mkdir -p /usr/local/incl
+sudo ln -s /usr/include/sqlext.h /usr/local/incl/sqlext.h
+sudo ln -s /usr/include/sql.h /usr/local/incl/sql.h
+sudo ln -s /usr/include/sqltypes.h /usr/local/incl/sqltypes.h
+
+# Pastikan library ODBC ada
+sudo mkdir -p /usr/local/incl
+sudo ln -s /usr/include/sqlext.h /usr/local/incl/sqlext.h
+sudo ln -s /usr/include/sql.h /usr/local/incl/sql.h
+sudo ln -s /usr/include/sqltypes.h /usr/local/incl/sqltypes.h
+
+# Compile ODBC PHP extension
+cd php-5.6.40/ext/odbc
+/www/server/php/56/bin/phpize
+./configure \
+  --with-php-config=/www/server/php/56/bin/php-config \
+  --with-unixODBC=shared,/usr
+make
+make install
+```
+
+### 6.4 Enable extension
 
 📍 `/www/server/php/56/etc/php.ini`
 ```
 extension=pdo.so
 extension=pdo_odbc.so
+extension=odbc.so
 ```
 
 ### Restart PHP:
